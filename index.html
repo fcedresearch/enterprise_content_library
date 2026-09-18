@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Enterprise Content Library</title>
+<meta name="description" content="Full-text search across the FranklinCovey All Access Pass library: courses, microcourses, modules, exercises, articles and video transcripts.">
+<style>
+:root{
+  --indigo:#001B49; --blue:#3373DF; --green:#62BB46; --yellow:#FFC635; --red:#D72221;
+  --bg:#F5F7FB; --surface:#FFFFFF; --surface2:#EEF2F8; --line:#D9DFEA; --text:#1F2633; --muted:#5B6575;
+  --accent:#3373DF; --accent-text:#FFFFFF; --mark:#FFE9A3; --head:#001B49; --link:#2457B8;
+  --chip-course:#E4F5DC; --chip-course-t:#265F14; --chip-micro:#FFF3CC; --chip-micro-t:#6B4E00;
+  --chip-module:#E2ECFC; --chip-module-t:#1D3F86; --chip-exercise:#EFE6FA; --chip-exercise-t:#4B2A82;
+  --chip-article:#EAEEF4; --chip-article-t:#334155; --chip-video:#FBE3E3; --chip-video-t:#8F1616;
+  --shadow:0 1px 2px rgba(0,27,73,.06), 0 8px 24px rgba(0,27,73,.06);
+  --radius:12px; --font:"Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1524; --surface:#161F33; --surface2:#1E2941; --line:#2C3A56; --text:#E7ECF5; --muted:#A3AFC4;
+  --accent:#6C9BF2; --accent-text:#0B1220; --mark:#7A5A00; --head:#F3F6FC; --link:#8FB3F7;
+  --chip-course:#1E3A17; --chip-course-t:#BFE9AE; --chip-micro:#4A3A08; --chip-micro-t:#FFE08A;
+  --chip-module:#1B2E57; --chip-module-t:#BBD0F8; --chip-exercise:#33245A; --chip-exercise-t:#D6C3F5;
+  --chip-article:#2A3446; --chip-article-t:#C9D3E3; --chip-video:#4A1A1A; --chip-video-t:#F5B4B4;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1524; --surface:#161F33; --surface2:#1E2941; --line:#2C3A56; --text:#E7ECF5; --muted:#A3AFC4;
+  --accent:#6C9BF2; --accent-text:#0B1220; --mark:#7A5A00; --head:#F3F6FC; --link:#8FB3F7;
+  --chip-course:#1E3A17; --chip-course-t:#BFE9AE; --chip-micro:#4A3A08; --chip-micro-t:#FFE08A;
+  --chip-module:#1B2E57; --chip-module-t:#BBD0F8; --chip-exercise:#33245A; --chip-exercise-t:#D6C3F5;
+  --chip-article:#2A3446; --chip-article-t:#C9D3E3; --chip-video:#4A1A1A; --chip-video-t:#F5B4B4;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5}
+a{color:var(--link)}
+button{font-family:inherit}
+mark{background:var(--mark);color:inherit;padding:0 1px;border-radius:2px}
+.wrap{max-width:1440px;margin:0 auto;padding-block:0 24px;padding-inline:16px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:14px 12px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:10px}
+.brand h1{margin:0;font-size:20px;color:var(--head);letter-spacing:-.01em}
+.brand .sub{color:var(--muted);font-size:13px}
+.searchrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.searchrow input[type=search]{flex:1 1 320px;min-width:0;font-size:16px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text)}
+.searchrow input[type=search]:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.searchrow select{font-size:14px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text)}
+.searchrow .hint{flex-basis:100%;color:var(--muted);font-size:12.5px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:8px 12px;border-radius:10px;font-size:13.5px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,.item:focus-visible,.filters input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-text);border-color:transparent}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start;padding-top:18px}
+@media (max-width:1100px){.layout{grid-template-columns:240px minmax(0,1fr)}.detail{position:fixed;inset:0;z-index:20;overflow:auto;background:var(--bg);padding:16px;display:none}.detail.open{display:block}.detail .close{display:inline-flex}}
+@media (max-width:760px){.layout{grid-template-columns:1fr}.filters{display:none}.filters.open{display:block}.filtertoggle{display:inline-flex}}
+.filtertoggle{display:none}
+.filters{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 6px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 118px);max-height:calc(100vh - 140px);overflow:auto}
+.filters h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.filters h2:first-child{margin-top:0}
+.filters label{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13.5px;cursor:pointer}
+.filters label .n{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.filters input[type=checkbox]{accent-color:var(--accent);margin:0}
+.filters input[type=search]{width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--text);margin-bottom:4px}
+.filters .group{max-height:210px;overflow:auto;padding-right:2px}
+.filters .clear{margin:12px 0 8px;width:100%}
+.results h2, .detail h2.title{font-size:15px;color:var(--head);margin:0 0 10px;font-weight:600}
+.results .summary{color:var(--muted);font-size:13px;margin-bottom:10px}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;cursor:pointer;color:var(--text)}
+.item:hover{border-color:var(--accent)}
+.item.active{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent)}
+.item .t{font-weight:600;color:var(--head);margin:4px 0 2px;text-wrap:balance}
+.item .meta{display:flex;flex-wrap:wrap;gap:6px 10px;color:var(--muted);font-size:12.5px}
+.item .snip{margin-top:6px;font-size:13.5px;color:var(--text)}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:2px 8px;border-radius:999px;background:var(--chip-article);color:var(--chip-article-t)}
+.chip.Course{background:var(--chip-course);color:var(--chip-course-t)}
+.chip.Microcourse{background:var(--chip-micro);color:var(--chip-micro-t)}
+.chip.Module{background:var(--chip-module);color:var(--chip-module-t)}
+.chip.Exercise{background:var(--chip-exercise);color:var(--chip-exercise-t)}
+.chip.Video{background:var(--chip-video);color:var(--chip-video-t)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pager{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.detail{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);position:sticky;top:calc(env(safe-area-inset-top,0px) + 118px);max-height:calc(100vh - 140px);overflow:auto}
+.detail .close{display:none;margin-bottom:10px}
+.detail .empty{color:var(--muted)}
+.detail h2.title{font-size:20px;line-height:1.3;margin:6px 0 8px;text-wrap:balance}
+.detail .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13.5px;margin:12px 0}
+.detail .kv dt{color:var(--muted)}
+.detail .kv dd{margin:0}
+.detail .links{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.detail h3{font-size:14px;color:var(--head);margin:18px 0 6px;letter-spacing:.01em}
+.detail .body{max-width:68ch;font-size:15px}
+.detail .body h3{font-size:16px;margin:16px 0 6px}
+.detail .body h4{font-size:14.5px;margin:14px 0 4px}
+.detail .body p{margin:0 0 10px}
+.detail .body li{margin:2px 0}
+details.fmt{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:8px 0;background:var(--surface2)}
+details.fmt summary{cursor:pointer;font-weight:600;color:var(--head)}
+details.fmt .sec{margin:10px 0 4px}
+details.fmt .sec .st{font-weight:600}
+details.fmt .week{color:var(--muted);font-size:12.5px;margin-top:6px;text-transform:uppercase;letter-spacing:.05em}
+details.fmt .act{margin:4px 0 4px 12px;font-size:13.5px}
+details.fmt .act .d{color:var(--muted)}
+details.fmt .blk{margin:6px 0 8px;font-size:13.5px}
+details.fmt .blk .bt{font-weight:600}
+details.fmt .g{font-size:12.5px;color:var(--muted);font-style:italic}
+.mats ul{margin:4px 0 8px 18px;padding:0;font-size:13.5px}
+.rel a{display:block;font-size:13.5px;margin:3px 0}
+.status{color:var(--muted);font-size:13px;padding:20px 0}
+footer{color:var(--muted);font-size:12.5px;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
+@media (prefers-reduced-motion:no-preference){.item{transition:border-color .12s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <h1>Enterprise Content Library</h1>
+    <span class="sub" id="subtitle">Loading the library…</span>
+  </div>
+  <div class="searchrow">
+    <input type="search" id="q" placeholder="Search titles, descriptions, course outlines, article text and video transcripts" autocomplete="off" aria-label="Search the library">
+    <select id="sort" aria-label="Sort results">
+      <option value="rel">Sort: best match</option>
+      <option value="title">Sort: title A to Z</option>
+      <option value="type">Sort: content type, then title</option>
+    </select>
+    <button class="btn filtertoggle" id="ftoggle" type="button">Filters</button>
+    <span class="hint">All words must appear. Put a phrase in quotes to require the exact wording, for example "circle of influence". Matches in titles rank first.</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="filters" id="filters" aria-label="Filters">
+    <button class="btn clear" id="clear" type="button">Clear all filters</button>
+    <h2>Content type</h2><div id="f-type"></div>
+    <h2>Audience</h2><div id="f-audience"></div>
+    <h2>Skill group</h2><div id="f-group"></div>
+    <h2>Capability</h2><div id="f-cap" class="group"></div>
+    <h2>Skill</h2><input type="search" id="skillfind" placeholder="Find a skill" aria-label="Find a skill"><div id="f-skill" class="group"></div>
+    <h2>Program</h2><div id="f-program" class="group"></div>
+    <h2>Delivery</h2><div id="f-delivery"></div>
+    <h2>Content held here</h2><div id="f-has"></div>
+  </aside>
+
+  <main class="results" aria-live="polite">
+    <h2 id="rtitle">Results</h2>
+    <div class="summary" id="rsummary"></div>
+    <div class="list" id="list"></div>
+    <div class="pager" id="pager"></div>
+  </main>
+
+  <section class="detail" id="detail" aria-label="Selected item">
+    <button class="btn close" id="dclose" type="button">Back to results</button>
+    <div class="empty" id="dempty">Select an item to read its full text, outline and materials. Course and microcourse pages show the weekly path and what each week assigns; articles and videos show the full text or transcript with your search terms highlighted.</div>
+    <div id="dbody"></div>
+  </section>
+</div>
+<footer id="foot"></footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const D = window.CATALOG; const items = D.items; const N = items.length;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const TYPES = ['Course','Microcourse','Module','Exercise','Article','Video'];
+  const GROUPS = ['Winning Culture','Leadership','Individual Effectiveness','Strategy & Planning','Breakthrough Results'];
+  const AUD = ['Managers and leaders','Individual contributors','All learners'];
+  const DELIV = ['OnDemand','Platform Facilitated','Live Facilitated','Facilitator materials only'];
+  const FULL = D.fullText !== false;
+  const HAS = (FULL ? [['text','Full text or transcript']] : []).concat([['outline','Course outline'],['path','Sits in a course or microcourse path']]);
+
+  // ---- derived plain text per item -------------------------------------
+  const strip = h => h.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/\s+/g,' ').trim();
+  const outlineText = it => it.outline.map(f => f.sections.map(s => s.title+' '+s.items.map(x => [x.t,x.x].filter(Boolean).join(' ')).join(' ')).join(' ')).join(' ');
+  const matText = it => (it.materials||[]).map(m => m.label+' '+m.items.join(' ')).join(' ');
+  items.forEach(it => {
+    it.body = it.html ? strip(it.html) : (it.text||'');
+    it.extra = [it.about, outlineText(it), matText(it), it.placement, it.primarySkill, it.skills.join(' '), it.caps.join(' '), it.program].filter(Boolean).join(' ');
+    it.words = it.body ? it.body.split(/\s+/).length : (it.words||0);
+    it.hasText = !!it.body; it.hasOutline = it.outline.length>0; it.hasPath = it.parents.length>0;
+  });
+  const byId = new Map(items.map(it => [it.id, it]));
+
+  // ---- inverted index ----------------------------------------------------
+  const tok = s => (s||'').toLowerCase().replace(/[’‘']/g,"'").split(/[^a-z0-9'&-]+/).filter(t => t.length>1);
+  const index = new Map(); // token -> Map(docIdx -> weight)
+  const df = new Map();
+  function add(i, text, w){ const seen=new Set(); for(const t of tok(text)){ let m=index.get(t); if(!m){m=new Map(); index.set(t,m);} m.set(i,(m.get(i)||0)+w); if(!seen.has(t)){seen.add(t); df.set(t,(df.get(t)||0)+1);} } }
+  items.forEach((it,i) => { add(i,it.title,8); add(i,it.desc,3); add(i,it.extra,1.5); add(i,it.body,1); });
+  const keys = [...index.keys()].sort();
+  function prefixKeys(p){ let lo=0,hi=keys.length; while(lo<hi){const m=(lo+hi)>>1; if(keys[m]<p) lo=m+1; else hi=m;} const out=[]; for(let i=lo;i<keys.length&&keys[i].startsWith(p);i++) out.push(keys[i]); return out; }
+  const idf = t => Math.log(1 + N/((df.get(t)||0)+1));
+
+  function parseQuery(q){ const phrases=[]; q=q.replace(/"([^"]+)"/g,(m,p)=>{phrases.push(p.toLowerCase().trim()); return ' ';}); return {terms: tok(q), phrases}; }
+  function search(q){
+    const {terms, phrases} = parseQuery(q);
+    if(!terms.length && !phrases.length) return null;
+    let scores = null;
+    terms.forEach((t, ti) => {
+      const cands = (ti===terms.length-1 && t.length>=3) ? prefixKeys(t) : (index.has(t)?[t]:[]);
+      const s = new Map();
+      for(const k of cands){ const w = idf(k) * (k===t?1:0.6); for(const [i,tf] of index.get(k)) s.set(i,(s.get(i)||0)+tf*w); }
+      if(scores===null) scores=s; else { for(const i of [...scores.keys()]) { if(!s.has(i)) scores.delete(i); else scores.set(i, scores.get(i)+s.get(i)); } }
+    });
+    if(scores===null){ scores=new Map(); items.forEach((it,i)=>scores.set(i,1)); }
+    if(phrases.length){ for(const i of [...scores.keys()]){ const it=items[i]; const hay=(it.title+' '+it.desc+' '+it.extra+' '+it.body).toLowerCase(); if(!phrases.every(p=>hay.includes(p))) scores.delete(i); else scores.set(i, scores.get(i)+5); } }
+    return {scores, terms, phrases};
+  }
+
+  // ---- filters ------------------------------------------------------------
+  const state = {q:'', sort:'rel', page:0, type:new Set(), audience:new Set(), group:new Set(), cap:new Set(), skill:new Set(), program:new Set(), delivery:new Set(), has:new Set(), sel:null};
+  const PAGE = 40;
+  function passes(it){
+    if(state.type.size && !state.type.has(it.type)) return false;
+    if(state.audience.size && !state.audience.has(it.audience)) return false;
+    if(state.group.size && !it.groups.some(g=>state.group.has(g))) return false;
+    if(state.cap.size && !it.caps.some(c=>state.cap.has(c))) return false;
+    if(state.skill.size && !it.skills.some(s=>state.skill.has(s))) return false;
+    if(state.program.size && !state.program.has(it.program)) return false;
+    if(state.delivery.size && !it.delivery.some(d=>state.delivery.has(d))) return false;
+    if(state.has.has('text') && !it.hasText) return false;
+    if(state.has.has('outline') && !it.hasOutline) return false;
+    if(state.has.has('path') && !it.hasPath) return false;
+    return true;
+  }
+  function countBy(fn, base){ const c=new Map(); for(const it of base){ const v=fn(it); (Array.isArray(v)?v:[v]).forEach(x=>{ if(x) c.set(x,(c.get(x)||0)+1); }); } return c; }
+  function renderFilterGroup(el, key, values, counts, filterText){
+    el.innerHTML = values.filter(v => !filterText || v.toLowerCase().includes(filterText)).map(v => {
+      const id = 'f_'+key+'_'+v.replace(/[^a-z0-9]/gi,'_');
+      return `<label><input type="checkbox" id="${id}" data-key="${key}" data-val="${esc(v)}" ${state[key].has(v)?'checked':''}><span>${esc(v)}</span><span class="n">${counts.get(v)||0}</span></label>`;
+    }).join('');
+  }
+  function renderFilters(){
+    // counts computed on search results only (not the other filters), so numbers stay useful
+    const base = current.base;
+    renderFilterGroup($('f-type'),'type',TYPES,countBy(it=>it.type,base));
+    renderFilterGroup($('f-audience'),'audience',AUD,countBy(it=>it.audience,base));
+    renderFilterGroup($('f-group'),'group',GROUPS,countBy(it=>it.groups,base));
+    renderFilterGroup($('f-cap'),'cap',D.tax.caps.map(c=>c.name),countBy(it=>it.caps,base));
+    renderFilterGroup($('f-skill'),'skill',D.tax.skills.map(s=>s.name).sort(),countBy(it=>it.skills,base), $('skillfind').value.toLowerCase());
+    const progs=[...new Set(items.map(i=>i.program).filter(Boolean))].sort();
+    renderFilterGroup($('f-program'),'program',progs,countBy(it=>it.program,base));
+    renderFilterGroup($('f-delivery'),'delivery',DELIV,countBy(it=>it.delivery,base));
+    const hc = new Map([['text',base.filter(i=>i.hasText).length],['outline',base.filter(i=>i.hasOutline).length],['path',base.filter(i=>i.hasPath).length]]);
+    if(!FULL) hc.delete('text');
+    $('f-has').innerHTML = HAS.map(([k,l])=>`<label><input type="checkbox" data-key="has" data-val="${k}" ${state.has.has(k)?'checked':''}><span>${l}</span><span class="n">${hc.get(k)}</span></label>`).join('');
+  }
+
+  // ---- results ------------------------------------------------------------
+  let current = {base: items, rows: [], terms: [], phrases: []};
+  function run(){
+    const res = search(state.q);
+    let base, rows;
+    if(res){ base = [...res.scores.keys()].map(i=>items[i]); base.forEach((it,k)=>it._score=res.scores.get(items.indexOf(it))); current.terms=res.terms; current.phrases=res.phrases; }
+    else { base = items; current.terms=[]; current.phrases=[]; }
+    current.base = base;
+    rows = base.filter(passes);
+    if(state.sort==='title' || (!res && state.sort==='rel')) rows.sort((a,b)=>a.title.localeCompare(b.title));
+    else if(state.sort==='type') rows.sort((a,b)=> TYPES.indexOf(a.type)-TYPES.indexOf(b.type) || a.title.localeCompare(b.title));
+    else rows.sort((a,b)=> (b._score||0)-(a._score||0) || a.title.localeCompare(b.title));
+    current.rows = rows; state.page = 0;
+    renderFilters(); renderList();
+  }
+  function activeFilterText(){
+    const parts=[];
+    const lab = {type:'Content type',audience:'Audience',group:'Skill group',cap:'Capability',skill:'Skill',program:'Program',delivery:'Delivery',has:'Content held here'};
+    for(const k of Object.keys(lab)){ if(state[k].size) parts.push(lab[k]+': '+[...state[k]].map(v=>k==='has'?HAS.find(h=>h[0]===v)[1]:v).join(' or ')); }
+    return parts.join('; ');
+  }
+  function highlight(text){
+    const terms = current.terms.filter(t=>t.length>1); const phr = current.phrases;
+    if(!terms.length && !phr.length) return esc(text);
+    const parts=[...phr, ...terms].map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+    const re = new RegExp('('+parts.join('|')+')','gi');
+    return esc(text).replace(re, '<mark>$1</mark>');
+  }
+  function snippet(it){
+    const terms = current.terms; const phr=current.phrases;
+    const hay = it.body || it.desc || it.about || '';
+    if(!hay) return '';
+    let pos=-1; const low=hay.toLowerCase();
+    for(const p of [...phr, ...terms]){ const k=low.indexOf(p); if(k>=0 && (pos<0||k<pos)) pos=k; }
+    if(pos<0){ return highlight(hay.slice(0,180)) + (hay.length>180?'…':''); }
+    const a=Math.max(0,pos-90), b=Math.min(hay.length,pos+150);
+    return (a>0?'…':'')+highlight(hay.slice(a,b))+(b<hay.length?'…':'');
+  }
+  function renderList(){
+    const rows=current.rows; const total=rows.length;
+    const qtxt = state.q.trim();
+    $('rtitle').textContent = qtxt ? `Results: ${total.toLocaleString()} items matching “${qtxt}”` : `All items: ${total.toLocaleString()} of ${N.toLocaleString()}`;
+    const af = activeFilterText();
+    $('rsummary').textContent = (af ? 'Filtered by ' + af + '. ' : '') + (qtxt ? (state.sort==='rel' ? 'Sorted by best match; title matches rank first.' : '') : 'Sorted by title.');
+    const start=state.page*PAGE, slice=rows.slice(start,start+PAGE);
+    $('list').innerHTML = slice.map(it => `<button class="item ${state.sel===it.id?'active':''}" type="button" data-id="${it.id}">
+      <span class="chip ${it.type}">${it.type}</span>${it.program?` <span class="tag">${esc(it.program)}</span>`:''}
+      <div class="t">${highlight(it.title)}</div>
+      <div class="meta">${it.duration?`<span>${esc(it.duration)}</span>`:''}${it.weeks?`<span>${it.weeks} weeks</span>`:''}<span>${esc(it.audience)}</span>${it.parents.length?`<span>In ${it.parents.length} path${it.parents.length>1?'s':''}</span>`:''}${it.words?`<span>${it.words.toLocaleString()} words</span>`:''}</div>
+      <div class="snip">${snippet(it)}</div>
+      ${it.skills.length?`<div class="tags">${it.skills.slice(0,5).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}${it.skills.length>5?`<span class="tag">+${it.skills.length-5} more</span>`:''}</div>`:''}
+    </button>`).join('') || '<div class="status">No items match. Remove a filter or shorten the search.</div>';
+    const pages=Math.ceil(total/PAGE);
+    $('pager').innerHTML = pages>1 ? `<button class="btn" type="button" data-page="${state.page-1}" ${state.page===0?'disabled':''}>Previous</button><span class="status" style="padding:8px">Page ${state.page+1} of ${pages}</span><button class="btn" type="button" data-page="${state.page+1}" ${state.page>=pages-1?'disabled':''}>Next</button>` : '';
+  }
+
+  // ---- detail ------------------------------------------------------------
+  function kv(label, val){ return val ? `<dt>${label}</dt><dd>${val}</dd>` : ''; }
+  function renderDetail(id){
+    const it = byId.get(id); if(!it){ $('dbody').innerHTML=''; $('dempty').hidden=false; return; }
+    $('dempty').hidden=true;
+    const tagList = arr => arr.length ? arr.map(s=>`<span class="tag">${esc(s)}</span>`).join(' ') : '';
+    let h = `<span class="chip ${it.type}">${it.type}</span>${it.program?` <span class="tag">${esc(it.program)}</span>`:''}
+      <h2 class="title">${highlight(it.title)}</h2>`;
+    if(it.desc) h += `<p>${highlight(it.desc)}</p>`;
+    h += `<div class="links"><a class="btn" href="${esc(it.url)}" target="_blank" rel="noopener">Open on the platform</a><a class="btn" href="${esc(it.notion)}" target="_blank" rel="noopener">Open in Notion</a>${it.video?`<a class="btn" href="${esc(it.video)}" target="_blank" rel="noopener">Play the video</a>`:''}</div>`;
+    h += `<dl class="kv">${kv('Audience',esc(it.audience))}${kv('Duration',esc(it.duration))}${kv('Weeks',it.weeks||'')}${kv('Delivery',esc(it.delivery.join(', ')))}${kv('Version',esc(it.version))}${kv('Primary skill',esc(it.primarySkill))}${kv('Skills',tagList(it.skills))}${kv('Capabilities',tagList(it.caps))}${kv('Skill groups',tagList(it.groups))}${it.custom?kv('Custom versions on our platform',it.custom):''}${it.certificate?kv('Certificate','Learners earn a shareable certificate'):''}${kv('Words',it.words?it.words.toLocaleString():'')}</dl>`;
+    if(it.parents.length){ h += `<h3>Assigned in these paths</h3><div class="rel">${it.parents.map(p=>`<a href="#id=${p.id}" data-go="${p.id}">${esc(p.title)}</a>`).join('')}</div>${it.placement?`<p style="font-size:13px;color:var(--muted)">${esc(it.placement)}</p>`:''}`; }
+    if(it.about && it.about!==it.desc) h += `<h3>About</h3><div class="body"><p>${highlight(it.about)}</p></div>`;
+    if(it.pageSkills && it.pageSkills.length) h += `<p style="font-size:13px"><span style="color:var(--muted)">Skills the course page lists:</span> ${esc(it.pageSkills.join(', '))}</p>`;
+    if(it.outline.length){
+      h += `<h3>${it.type==='Microcourse'?'Syllabus by week':'Outline by delivery format'}</h3>`;
+      it.outline.forEach((f,fi)=>{
+        h += `<details class="fmt" ${fi===0?'open':''}><summary>${esc(f.tab||'Syllabus')}</summary>`;
+        f.sections.forEach(s=>{
+          h += `<div class="sec"><div class="st">${esc(s.title)}</div>`;
+          let week='';
+          s.items.forEach(x=>{
+            if(x.k==='h') h+=`<div class="blk"><span class="bt">${esc(x.t)}</span></div>`;
+            else if(x.k==='b') h+=`<div class="blk">${x.t?`<span class="bt">${esc(x.t)}</span> `:''}${highlight(x.x)}</div>`;
+            else if(x.k==='g') h+=`<div class="g">${esc(x.t)}</div>`;
+            else if(x.k==='a'){ if(x.w && x.w!==week){ week=x.w; h+=`<div class="week">${esc(week)}</div>`; } h+=`<div class="act">${esc(x.t)}${x.x?`: ${highlight(x.x)}`:''}${x.d?` <span class="d">(${esc(x.d)})</span>`:''}</div>`; }
+          });
+          h += `</div>`;
+        });
+        h += `</details>`;
+      });
+    }
+    if(it.materials && it.materials.length){
+      h += `<h3>Materials and components</h3><div class="mats">` + it.materials.map(m=>`<div><strong>${esc(m.label)}</strong><ul>${m.items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('') + `</div>`;
+    }
+    if(it.contains.length){
+      const kids = it.contains.map(k=>byId.get(k)).filter(Boolean).sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)||a.title.localeCompare(b.title));
+      h += `<h3>Library items this path assigns (${kids.length})</h3><div class="rel">${kids.map(k=>`<a href="#id=${k.id}" data-go="${k.id}"><span class="chip ${k.type}">${k.type}</span> ${esc(k.title)}</a>`).join('')}</div>`;
+    }
+    if(it.html || it.text){
+      h += `<h3>${it.type==='Video'?'Transcript':'Full text'}</h3><div class="body">${it.html ? highlightHtml(it.html) : `<p>${highlight(it.text)}</p>`}</div>`;
+    } else if(!FULL && (it.type==='Article' || it.type==='Video')){
+      h += `<p style="color:var(--muted);font-size:13.5px">${it.type==='Video'?'The video and its transcript are':'The article text is'} on the platform (${it.words?it.words.toLocaleString()+' words':'sign-in required'}). Open it on the platform to read it.</p>`;
+    } else if(it.type==='Module' || it.type==='Exercise'){
+      h += `<p style="color:var(--muted);font-size:13.5px">This ${it.type.toLowerCase()} runs as an interactive lesson on the platform, so the library holds only its title and description. Open it on the platform to see the content.</p>`;
+    }
+    h += `<p style="color:var(--muted);font-size:12.5px;margin-top:16px">Source: All Access Pass Impact Platform library (English), pulled ${D.pulled}. Platform ID ${it.id}.</p>`;
+    $('dbody').innerHTML = h;
+    $('detail').scrollTop = 0;
+  }
+  function highlightHtml(html){
+    const terms = current.terms.filter(t=>t.length>1); const phr=current.phrases;
+    if(!terms.length && !phr.length) return html;
+    const parts=[...phr, ...terms].map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+    const re = new RegExp('('+parts.join('|')+')','gi');
+    // only touch text nodes: split on tags
+    return html.split(/(<[^>]+>)/g).map(seg => seg.startsWith('<') ? seg : seg.replace(re,'<mark>$1</mark>')).join('');
+  }
+  function select(id, push){
+    state.sel = id; renderDetail(id);
+    document.querySelectorAll('.item').forEach(b=>b.classList.toggle('active', Number(b.dataset.id)===id));
+    if(window.innerWidth<=1100) $('detail').classList.add('open');
+    if(push!==false){ try{ history.replaceState(null,'','#'+encodeHash()); }catch(e){} }
+  }
+  function encodeHash(){ const p=new URLSearchParams(); if(state.q) p.set('q',state.q); if(state.sel) p.set('id',state.sel); for(const k of ['type','audience','group','cap','skill','program','delivery','has']) if(state[k].size) p.set(k,[...state[k]].join('|')); return p.toString(); }
+  function decodeHash(){ const p=new URLSearchParams(location.hash.slice(1)); state.q=p.get('q')||''; $('q').value=state.q; for(const k of ['type','audience','group','cap','skill','program','delivery','has']){ state[k]=new Set((p.get(k)||'').split('|').filter(Boolean)); } const id=Number(p.get('id')); state.sel = byId.has(id)?id:null; }
+
+  // ---- events ---------------------------------------------------------------
+  let t; $('q').addEventListener('input', e => { clearTimeout(t); t=setTimeout(()=>{ state.q=e.target.value; run(); try{history.replaceState(null,'','#'+encodeHash());}catch(x){} }, 180); });
+  $('sort').addEventListener('change', e => { state.sort=e.target.value; run(); });
+  $('filters').addEventListener('change', e => { const cb=e.target; if(cb.type!=='checkbox') return; const s=state[cb.dataset.key]; if(cb.checked) s.add(cb.dataset.val); else s.delete(cb.dataset.val); run(); try{history.replaceState(null,'','#'+encodeHash());}catch(x){} });
+  $('skillfind').addEventListener('input', renderFilters);
+  $('clear').addEventListener('click', () => { for(const k of ['type','audience','group','cap','skill','program','delivery','has']) state[k].clear(); run(); });
+  $('list').addEventListener('click', e => { const b=e.target.closest('.item'); if(b) select(Number(b.dataset.id)); });
+  $('pager').addEventListener('click', e => { const b=e.target.closest('[data-page]'); if(b && !b.disabled){ state.page=Number(b.dataset.page); renderList(); window.scrollTo({top:0}); } });
+  $('dbody').addEventListener('click', e => { const a=e.target.closest('[data-go]'); if(a){ e.preventDefault(); select(Number(a.dataset.go)); } });
+  $('dclose').addEventListener('click', () => $('detail').classList.remove('open'));
+  $('ftoggle').addEventListener('click', () => $('filters').classList.toggle('open'));
+  window.addEventListener('hashchange', () => { decodeHash(); run(); if(state.sel) select(state.sel,false); });
+
+  // ---- boot ------------------------------------------------------------------
+  const counts = countBy(it=>it.type, items);
+  $('subtitle').textContent = `${N.toLocaleString()} items from the All Access Pass library (English), pulled ${D.pulled}: ${TYPES.map(t=>`${counts.get(t).toLocaleString()} ${t.toLowerCase()}s`).join(', ').replace('microcourses','microcourses').replace('exercises','exercises')}.`;
+  $('foot').innerHTML = `Metadata for every item also lives in the Notion catalog: <a href="${D.notionHome}" target="_blank" rel="noopener">FranklinCovey Enterprise Content Catalog</a>. Modules and exercises are interactive lessons on the platform and have no text here. Searching runs in your browser; nothing is sent anywhere.`;
+  if(!FULL){
+    $('q').placeholder = 'Search titles, descriptions, course outlines and materials';
+    $('dempty').textContent = 'Select an item to see its outline, materials, skills and where it sits in a course or microcourse path. Article text and video transcripts stay on the platform; every item links to its platform page.';
+    document.querySelector('.searchrow .hint').textContent = 'All words must appear. Put a phrase in quotes to require the exact wording, for example "circle of influence". Matches in titles rank first. Course outlines and materials lists are searched; article text and transcripts are not held on this site.';
+    document.querySelector('meta[name=description]').content = 'Search across the FranklinCovey All Access Pass library: courses, microcourses, modules, exercises, articles and videos, with outlines, materials, skills and capabilities.';
+  }
+  decodeHash(); run(); if(state.sel) select(state.sel,false);
+})();
+</script>
+</body>
+</html>
